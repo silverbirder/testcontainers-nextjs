@@ -1,4 +1,4 @@
-import { describe, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, it, vi } from "vitest";
 import { MySqlContainer } from "@testcontainers/mysql";
 import { GenericContainer } from "testcontainers";
 import { createPool } from "mysql2";
@@ -6,16 +6,30 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { migrate } from "drizzle-orm/mysql2/migrator";
 import { faker } from "@faker-js/faker";
 import * as schema from "../server/db/schema";
-import { SeleniumContainer } from "@testcontainers/selenium";
-import { Browser, Builder } from "selenium-webdriver";
+// import { SeleniumContainer } from "@testcontainers/selenium";
+// import { Browser, Builder } from "selenium-webdriver";
+import { Browser, Page, chromium } from "@playwright/test";
 
 describe("", () => {
   vi.setConfig({ testTimeout: 600_000 });
+
+  let browser: Browser;
+  let page: Page;
+  beforeAll(async () => {
+    browser = await chromium.launch({ headless: true });
+    page = await browser.newPage();
+  });
+
+  afterAll(async () => {
+    await browser?.close();
+  });
+
   it("", async () => {
-    const container = await new MySqlContainer()
+    const mysqlContainer = await new MySqlContainer()
       .withDatabase("t3-app-nextjs-testcontainers")
       .start();
-    const databaseUrl = `mysql://${container.getUsername()}:${container.getUserPassword()}@${container.getHost()}:${container.getPort()}/${container.getDatabase()}`;
+    const databaseUrl = `mysql://${mysqlContainer.getUsername()}:${mysqlContainer.getUserPassword()}@${mysqlContainer.getHost()}:${mysqlContainer.getFirstMappedPort()}/${mysqlContainer.getDatabase()}`;
+    const exDatabaseUrl = `mysql://${mysqlContainer.getUsername()}:${mysqlContainer.getUserPassword()}@${mysqlContainer.getIpAddress(mysqlContainer.getNetworkNames()[0] ?? "")}:3306/${mysqlContainer.getDatabase()}`;
     const db = drizzle(
       createPool({
         uri: databaseUrl,
@@ -39,30 +53,32 @@ describe("", () => {
       .build("app", { deleteOnExit: false });
 
     const appContainer = await appImage
-      .withEnvironment({ DATABASE_URL: databaseUrl })
+      .withEnvironment({ DATABASE_URL: exDatabaseUrl, PORT: "3000" })
       .withExposedPorts(3000)
       .start();
+    const url = `http://${appContainer.getHost()}:${appContainer.getFirstMappedPort()}`;
+    console.log({ url, databaseUrl, exDatabaseUrl });
+    await page.goto(url);
+    // await page.screenshot({ path: "screenshot.png" });
+    // const seleniumContainer = await new SeleniumContainer(
+    //   "selenium/standalone-chrome:112.0",
+    // )
+    //   .withRecording()
+    //   .withBindMounts([{ source: "tmp", target: "/tmp/" }])
+    //   .start();
+    // const driver = await new Builder()
+    //   .forBrowser(Browser.CHROME)
+    //   .usingServer(seleniumContainer.getServerUrl())
+    //   .build();
 
-    const seleniumContainer = await new SeleniumContainer(
-      "selenium/standalone-chrome:112.0",
-    )
-      .withRecording()
-      .withBindMounts([{ source: "tmp", target: "/tmp/" }])
-      .start();
-    const driver = await new Builder()
-      .forBrowser(Browser.CHROME)
-      .usingServer(seleniumContainer.getServerUrl())
-      .build();
-
-    const ipAddress = appContainer.getIpAddress(
-      appContainer.getNetworkNames()[0] ?? "",
-    );
-    await driver.get(`http://${ipAddress}:3000`);
-    await driver.quit();
-
-    const stopContainer = await seleniumContainer.stop({ remove: false });
-    await stopContainer.saveRecording("/tmp/recording.mp4");
-    await appContainer.stop({ remove: false });
-    await container.stop();
+    // const ipAddress = appContainer.getIpAddress(
+    //   appContainer.getNetworkNames()[0] ?? "",
+    // );
+    // await driver.get(`http://${ipAddress}:3000`);
+    // await driver.quit();
+    // const stopContainer = await seleniumContainer.stop({ remove: false });
+    // await stopContainer.saveRecording("/tmp/recording.mp4");
+    await appContainer.stop({ remove: false, removeVolumes: false });
+    await mysqlContainer.stop({ remove: false, removeVolumes: false });
   });
 });
