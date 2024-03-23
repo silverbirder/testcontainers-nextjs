@@ -47,9 +47,7 @@ describe("", () => {
       "selenium/standalone-chrome:112.0",
     )
       .withRecording()
-      .withBindMounts([
-        { source: "tmp", target: "/tmp/" },
-      ])
+      .withBindMounts([{ source: "tmp", target: "/tmp/" }])
       .start();
     const driver = await new Builder()
       .forBrowser(Browser.CHROME)
@@ -57,13 +55,13 @@ describe("", () => {
       .build();
 
     const ipAddress = appContainer.getIpAddress(
-      appContainer.getNetworkNames()[0] || "",
+      appContainer.getNetworkNames()[0] ?? "",
     );
     await driver.get(`http://${ipAddress}:3000`);
     await driver.quit();
 
     const stopContainer = await seleniumContainer.stop({ remove: false });
-    stopContainer.saveRecording("/tmp/recording.mp4");
+    await stopContainer.saveRecording("/tmp/recording.mp4");
     await appContainer.stop({ remove: false });
     await container.stop();
   });
