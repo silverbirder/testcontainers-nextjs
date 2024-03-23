@@ -59,7 +59,7 @@ describe("", () => {
     const url = `http://${appContainer.getHost()}:${appContainer.getFirstMappedPort()}`;
     console.log({ url, databaseUrl, exDatabaseUrl });
     await page.goto(url);
-    // await page.screenshot({ path: "screenshot.png" });
+    await page.screenshot({ path: "screenshot.png" });
     // const seleniumContainer = await new SeleniumContainer(
     //   "selenium/standalone-chrome:112.0",
     // )
