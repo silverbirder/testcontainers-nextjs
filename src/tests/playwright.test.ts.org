@@ -1,0 +1,13 @@
+import { test, expect } from "@playwright/test";
+
+test("", async ({ page }) => {
+  await page.goto("http://localhost:3000");
+  await page.screenshot({ path: "screenshot-1.png" });
+  await page.getByPlaceholder("Title").fill("Hello World");
+  await page.screenshot({ path: "screenshot-2.png" });
+  await page.getByRole("button", { name: "Submit" }).click();
+  await page.screenshot({ path: "screenshot-3.png" });
+  await page.locator("button").isEnabled();
+  await page.waitForSelector("text=Your most recent post: Hello World");
+  await page.screenshot({ path: "screenshot-4.png" });
+});

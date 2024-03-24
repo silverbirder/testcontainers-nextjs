@@ -6,9 +6,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { migrate } from "drizzle-orm/mysql2/migrator";
 import { faker } from "@faker-js/faker";
 import * as schema from "../server/db/schema";
-// import { SeleniumContainer } from "@testcontainers/selenium";
-// import { Browser, Builder } from "selenium-webdriver";
-import { Browser, Page, chromium } from "@playwright/test";
+import { type Browser, type Page, chromium } from "@playwright/test";
 
 describe("", () => {
   vi.setConfig({ testTimeout: 600_000 });
@@ -29,7 +27,7 @@ describe("", () => {
       .withDatabase("t3-app-nextjs-testcontainers")
       .start();
     const databaseUrl = `mysql://${mysqlContainer.getUsername()}:${mysqlContainer.getUserPassword()}@${mysqlContainer.getHost()}:${mysqlContainer.getFirstMappedPort()}/${mysqlContainer.getDatabase()}`;
-    const exDatabaseUrl = `mysql://${mysqlContainer.getUsername()}:${mysqlContainer.getUserPassword()}@${mysqlContainer.getIpAddress(mysqlContainer.getNetworkNames()[0] ?? "")}:3306/${mysqlContainer.getDatabase()}`;
+    const innerDatabaseUrl = `mysql://${mysqlContainer.getUsername()}:${mysqlContainer.getUserPassword()}@${mysqlContainer.getIpAddress(mysqlContainer.getNetworkNames()[0] ?? "")}:3306/${mysqlContainer.getDatabase()}`;
     const db = drizzle(
       createPool({
         uri: databaseUrl,
@@ -53,31 +51,20 @@ describe("", () => {
       .build("app", { deleteOnExit: false });
 
     const appContainer = await appImage
-      .withEnvironment({ DATABASE_URL: exDatabaseUrl, PORT: "3000" })
+      .withEnvironment({ DATABASE_URL: innerDatabaseUrl, PORT: "3000" })
       .withExposedPorts(3000)
       .start();
     const url = `http://${appContainer.getHost()}:${appContainer.getFirstMappedPort()}`;
-    console.log({ url, databaseUrl, exDatabaseUrl });
+    console.log({ url, databaseUrl, innerDatabaseUrl });
     await page.goto(url);
-    await page.screenshot({ path: "screenshot.png" });
-    // const seleniumContainer = await new SeleniumContainer(
-    //   "selenium/standalone-chrome:112.0",
-    // )
-    //   .withRecording()
-    //   .withBindMounts([{ source: "tmp", target: "/tmp/" }])
-    //   .start();
-    // const driver = await new Builder()
-    //   .forBrowser(Browser.CHROME)
-    //   .usingServer(seleniumContainer.getServerUrl())
-    //   .build();
-
-    // const ipAddress = appContainer.getIpAddress(
-    //   appContainer.getNetworkNames()[0] ?? "",
-    // );
-    // await driver.get(`http://${ipAddress}:3000`);
-    // await driver.quit();
-    // const stopContainer = await seleniumContainer.stop({ remove: false });
-    // await stopContainer.saveRecording("/tmp/recording.mp4");
+    await page.screenshot({ path: "screenshots/screenshot-1.png" });
+    await page.getByPlaceholder("Title").fill("Hello World");
+    await page.screenshot({ path: "screenshots/screenshot-2.png" });
+    await page.getByRole("button", { name: "Submit" }).click();
+    await page.screenshot({ path: "screenshots/screenshot-3.png" });
+    await page.locator("button").isEnabled();
+    await page.waitForSelector("text=Your most recent post: Hello World");
+    await page.screenshot({ path: "screenshots/screenshot-4.png" });
     await appContainer.stop({ remove: false, removeVolumes: false });
     await mysqlContainer.stop({ remove: false, removeVolumes: false });
   });
