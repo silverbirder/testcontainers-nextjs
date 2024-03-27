@@ -1,0 +1,24 @@
+schemaVersion: "2.0.0"
+commandTests:
+  - name: "cat server.js"
+    command: "cat"
+    args: ["server.js"]
+    expectedOutput: [".*startServer.*"]
+fileContentTests:
+  - name: "package.json"
+    expectedContents: ["testcontainers-nextjs"]
+    path: "/app/package.json"
+fileExistenceTests:
+  - name: "package.json"
+    path: "/app"
+    shouldExist: true
+metadataTest:
+  envVars:
+    - key: PORT
+      value: 3000
+    - key: NODE_ENV
+      value: production
+  exposedPorts: ["3000"]
+  cmd: ["node", "server.js"]
+  workdir: "/app"
+  user: "nextjs"
