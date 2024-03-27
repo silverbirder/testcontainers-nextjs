@@ -10,8 +10,11 @@ fileContentTests:
     path: "/app/package.json"
 fileExistenceTests:
   - name: "package.json"
-    path: "/app"
+    path: "/app/package.json"
     shouldExist: true
+    permissions: '-rw-r--r--'
+    uid: 1001
+    gid: 1001
 metadataTest:
   envVars:
     - key: PORT
